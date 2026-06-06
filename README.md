@@ -1,7 +1,23 @@
 # Lab 2 — File Processing → DuckDB MERGE → Iceberg
 
 Volume-based manifest pipeline: raw parquet on S3 → 10 MB batch → MERGE INTO Iceberg → archive via S3 tags.
-
+```
+CDC/Stream → generate_parquet.py → Raw Parquet (S3)
+                    ↓
+            run_pipeline.py (orchestrator)
+                    ↓
+    ┌───────────────────────────────────────────────┐
+    │ FileProcessor          │ DuckDBProcessor       │
+    │ · scan (skip archived) │ · setup / attach      │
+    │ · buffer until 10 MB   │ · read_parquet        │
+    │ · create manifest      │ · dedupe ROW_NUMBER   │
+    │ · read manifest   ────→│ · MERGE INTO Iceberg  │
+    │ · archive + delete     │                       │
+    │ · error_manifest (fail)│ → Iceberg table       │
+    └───────────────────────────────────────────────┘
+                    ↓
+            Async job (optional lifecycle archive)
+```
 ---
 
 ## Prerequisites
